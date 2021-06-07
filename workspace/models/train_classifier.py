@@ -53,9 +53,11 @@ def load_data_from_db(database_filepath):
         category_names -> List of categories name
     """
     
-    engine = create_engine('sqlite:///' + database_filepath)
+    #engine = create_engine('sqlite:///' + database_filepath)
+    engine=create_engine('sqlite:///../data/DisasterResponse.db')
     table_name = os.path.basename(database_filepath).replace(".db","") + "_table"
-    df = pd.read_sql_table(table_name,engine)
+    df = pd.read_sql_table('DisasterResponse_table', engine)
+    #df = pd.read_sql_table(table_name, engine)
     
     #Remove child alone as it has all zeros only
     df = df.drop(['child_alone'],axis=1)
