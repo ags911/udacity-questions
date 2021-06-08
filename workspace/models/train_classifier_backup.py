@@ -49,22 +49,21 @@ def load_data_from_db(database_filepath):
         database_filepath -> Path to SQLite destination database (e.g. disaster_response_db.db)
     Output:
         X -> a dataframe containing features
-        y, -> a dataframe containing labels
+        Y -> a dataframe containing labels
         category_names -> List of categories name
     """
     
-    #engine = create_engine('sqlite:///data/DisasterResponse.db')
-    #table_name = os.path.basename(database_filepath).replace(".db","") + "_table"
-    #df = pd.read_sql_table('DisasterResponse_table', engine)
-
-    engine = create_engine('sqlite:///' + database_filepath)
-    table_name = os.path.basename(database_filepath).replace('.db','') + '_table'
-    df = pd.read_sql_table(table_name, engine)
+    #engine = create_engine('sqlite:///' + database_filepath)
+    engine=create_engine('sqlite:///../data/DisasterResponse.db')
+    table_name = os.path.basename(database_filepath).replace(".db","") + "_table"
+    df = pd.read_sql_table('DisasterResponse_table', engine)
+    #df = pd.read_sql_table(table_name, engine)
     
-    # remove child_alone since it has only zeros
-    df = df.drop(['child_alone'], axis=1)
+    #Remove child alone as it has all zeros only
+    df = df.drop(['child_alone'],axis=1)
     
-    # replacing the incorrect response values 2 with 1. 0 could also have been the value but we have selected 1 as it is the majority.
+    # Given value 2 in the related field are neglible so it could be error. Replacing 2 with 1 to consider it a valid response.
+    # Alternatively, we could have assumed it to be 0 also. In the absence of information I have gone with majority class.
     df['related']=df['related'].map(lambda x: 1 if x == 2 else x)
     
     X = df['message']
@@ -72,7 +71,7 @@ def load_data_from_db(database_filepath):
     
     #print(X)
     #print(y.columns)
-    category_names = y.columns # used for visualization purposes
+    category_names = y.columns # This will be used for visualization purpose
     return X, y, category_names
 
 
@@ -200,7 +199,7 @@ def multioutput_fscore(y_true,y_pred,beta=1):
     f1score = gmean(f1score)
     return f1score
 
-def evaluate_pipeline(pipeline, X_test, y_test, category_names):
+def evaluate_pipeline(pipeline, X_test, Y_test, category_names):
     """
     Evaluate Model function
     
@@ -209,23 +208,23 @@ def evaluate_pipeline(pipeline, X_test, y_test, category_names):
     Arguments:
         pipeline -> A valid scikit ML Pipeline
         X_test -> Test features
-        y_test -> Test labels
+        Y_test -> Test labels
         category_names -> label names (multi-output)
     """
-    y_pred = pipeline.predict(X_test)
+    Y_pred = pipeline.predict(X_test)
     
-    multi_f1 = multioutput_fscore(y_test,y_pred, beta = 1)
-    overall_accuracy = (y_pred == y_test).mean().mean()
+    multi_f1 = multioutput_fscore(Y_test,Y_pred, beta = 1)
+    overall_accuracy = (Y_pred == Y_test).mean().mean()
 
     print('Average overall accuracy {0:.2f}%'.format(overall_accuracy*100))
     print('F1 score (custom definition) {0:.2f}%'.format(multi_f1*100))
 
     # Print the whole classification report.
-    y_pred = pd.DataFrame(y_pred, columns = y_test.columns)
+    Y_pred = pd.DataFrame(Y_pred, columns = Y_test.columns)
     
-    for column in y_test.columns:
+    for column in Y_test.columns:
         print('Model Performance with Category: {}'.format(column))
-        print(classification_report(y_test[column],y_pred[column]))
+        print(classification_report(Y_test[column],Y_pred[column]))
 
 
 def save_model_as_pickle(pipeline, pickle_filepath):
@@ -256,16 +255,16 @@ def main():
         database_filepath, pickle_filepath = sys.argv[1:]
         print('Loading data from {} ...'.format(database_filepath))
         X, y, category_names = load_data_from_db(database_filepath)
-        X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2)
+        X_train, X_test, Y_train, Y_test = train_test_split(X, Y, test_size=0.2)
         
         print('Building the pipeline ...')
         pipeline = build_pipeline()
         
         print('Training the pipeline ...')
-        pipeline.fit(X_train, y_train)
+        pipeline.fit(X_train, Y_train)
         
         print('Evaluating model...')
-        evaluate_pipeline(pipeline, X_test, y_test, category_names)
+        evaluate_pipeline(pipeline, X_test, Y_test, category_names)
 
         print('Saving pipeline to {} ...'.format(pickle_filepath))
         save_model_as_pickle(pipeline, pickle_filepath)
@@ -274,7 +273,7 @@ def main():
 
     else:
          print("Please provide the arguments correctly: \nSample Script Execution:\n\
-> python train_classifier.py ../data/disaster_response_db classifier.pkl \n\
+> python train_classifier.py ../data/disaster_response_db.db classifier.pkl \n\
 Arguments Description: \n\
 1) Path to SQLite destination database (e.g. disaster_response_db.db)\n\
 2) Path to pickle file name where ML model needs to be saved (e.g. classifier.pkl")
