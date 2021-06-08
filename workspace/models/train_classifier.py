@@ -52,26 +52,17 @@ def load_data_from_db(database_filepath):
         y, -> a dataframe containing labels
         category_names -> List of categories name
     """
-    
-    #engine = create_engine('sqlite:///data/DisasterResponse.db')
-    #table_name = os.path.basename(database_filepath).replace(".db","") + "_table"
-    #df = pd.read_sql_table('DisasterResponse_table', engine)
 
-    engine = create_engine('sqlite:///' + database_filepath)
+    engine = create_engine('sqlite:///{}'.format(database_filepath))
+    #engine = create_engine('sqlite:///' + database_filepath)
     table_name = os.path.basename(database_filepath).replace('.db','') + '_table'
-    df = pd.read_sql_table(table_name, engine)
+    df = pd.read_sql_table('DisasterResponse_table', engine)
+    #df = pd.read_sql_table(table_name, engine)
     
-    # remove child_alone since it has only zeros
-    df = df.drop(['child_alone'], axis=1)
-    
-    # replacing the incorrect response values 2 with 1. 0 could also have been the value but we have selected 1 as it is the majority.
-    df['related']=df['related'].map(lambda x: 1 if x == 2 else x)
-    
+    # assign ml variables
     X = df['message']
     y = df.iloc[:,4:]
     
-    #print(X)
-    #print(y.columns)
     category_names = y.columns # used for visualization purposes
     return X, y, category_names
 
