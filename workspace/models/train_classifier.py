@@ -10,7 +10,7 @@ Arguments:
     2) Path to pickle file name where ML model needs to be saved (e.g. classifier.pkl)
 """
 
-# import libraries
+# import ntlk modules
 import nltk
 nltk.download('punkt')
 nltk.download('wordnet')
@@ -145,7 +145,15 @@ def build_pipeline():
         ('classifier', MultiOutputClassifier(AdaBoostClassifier()))
     ])
 
-    return pipeline
+    parameters = {'classifier__estimator__learning_rate': [0.01, 0.02, 0.05],
+              'classifier__estimator__n_estimators': [10, 20, 40]}
+
+    cv = GridSearchCV(pipeline, param_grid = parameters, 
+                      scoring = 'f1_micro', n_jobs = -1, verbose = 2)
+
+    #cv.fit(X_train, y_train)
+    
+    return cv
 
 def multioutput_fscore(y_true,y_pred,beta=1):
     """
@@ -231,6 +239,10 @@ def save_model_as_pickle(pipeline, pickle_filepath):
     
     """
     pickle.dump(pipeline, open(pickle_filepath, 'wb'))
+    
+    #pkl_filename = '{}'.format(pickle_filepath)
+    #with open(pkl_filename, 'wb') as file:
+    #    pickle.dump(pipline, file)
 
 def main():
     """
@@ -254,6 +266,10 @@ def main():
         
         print('Training the pipeline ...')
         pipeline.fit(X_train, y_train)
+        
+        print('Best parameters set:')
+        print(pipeline.best_params_)
+        pipeline = pipeline.best_estimator_
         
         print('Evaluating model...')
         evaluate_pipeline(pipeline, X_test, y_test, category_names)
